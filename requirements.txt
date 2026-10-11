@@ -1,0 +1,7 @@
+requests
+Pillow>=11,<13
+edge-tts
+groq
+google-api-python-client
+google-auth
+google-auth-oauthlib
