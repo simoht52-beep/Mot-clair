@@ -1,39 +1,34 @@
 """
 generate_video.py — فيديو قصير جدًا (5-8 ثوانٍ): بطاقة الكلمة + نطقها بالفرنسية
-مرتين (عادي ثم أبطأ قليلاً للتوضيح)، عبر edge-tts (مجاني تمامًا، بلا مفتاح API).
+مرتين (عادي ثم أبطأ قليلاً للتوضيح)، عبر gTTS (مجاني، بلا مفتاح API).
+
+ملاحظة تاريخية: كانت تعتمد سابقًا على edge-tts، لكن خدمة مايكروسوفت الداخلية
+التي تستند إليها تعطّلت تمامًا (تغيير في آلية التحقق الداخلية "Sec-MS-GEC"،
+أكتوبر 2026 — راجع github.com/rany2/edge-tts/issues/490)، فاستُبدلت بـ gTTS
+(تعتمد على خدمة Google Translate، آلية أبسط وأكثر استقرارًا تاريخيًا).
 """
 import os
-import asyncio
 import subprocess
 
-import edge_tts
+from gtts import gTTS
 
 from generate_image import generate_word_card
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEO_WIDTH, VIDEO_HEIGHT = 1080, 1920
 
-TTS_VOICE = "fr-FR-DeniseNeural"   # صوت فرنسي نسائي واضح، مجاني عبر edge-tts
-TTS_RATE_NORMAL = "+0%"
-TTS_RATE_SLOW = "-25%"
+TTS_LANG = "fr"
 SILENCE_BETWEEN = 0.5             # ثانية صمت بين النطقتين
 TAIL_PADDING = 0.6                # ثانية إضافية بعد آخر نطق قبل نهاية الفيديو
 
 
-async def _tts_to_file(text: str, rate: str, out_path: str):
-    communicate = edge_tts.Communicate(text, TTS_VOICE, rate=rate)
-    await communicate.save(out_path)
-
-
 def _synthesize_pronunciation(word: str, out_path: str):
     """ينطق الكلمة مرتين (عادية ثم أبطأ) مع صمت قصير بينهما، في ملف صوتي واحد."""
-    # نزيل أداة التعريف الملتصقة (l') من النطق الصوتي فقط عند الحاجة لاحقًا؛
-    # هنا نُبقيها لأن نطق "l'ananas" ضمن الجملة صحيح لغويًا كما هو.
     normal_path = out_path.replace(".mp3", "_normal.mp3")
     slow_path = out_path.replace(".mp3", "_slow.mp3")
 
-    asyncio.run(_tts_to_file(word, TTS_RATE_NORMAL, normal_path))
-    asyncio.run(_tts_to_file(word, TTS_RATE_SLOW, slow_path))
+    gTTS(text=word, lang=TTS_LANG, slow=False).save(normal_path)
+    gTTS(text=word, lang=TTS_LANG, slow=True).save(slow_path)
 
     silence_path = out_path.replace(".mp3", "_silence.mp3")
     subprocess.run([
